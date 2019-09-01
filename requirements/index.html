@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-touch-fullscreen" content="YES">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>依赖生成</title>
+    <script src="static/lib/jquery/jquery-1.8.0.js"></script>
+    <script src="static/lib/layui/layui.js"></script>
+    <script type="text/javascript" src="static/lib/qrcode/grid.js"></script>
+    <script type="text/javascript" src="static/lib/qrcode/version.js"></script>
+    <script type="text/javascript" src="static/lib/qrcode/detector.js"></script>
+    <script type="text/javascript" src="static/lib/qrcode/formatinf.js"></script>
+    <script type="text/javascript" src="static/lib/qrcode/errorlevel.js"></script>
+    <script type="text/javascript" src="static/lib/qrcode/bitmat.js"></script>
+    <script type="text/javascript" src="static/lib/qrcode/datablock.js"></script>
+    <script type="text/javascript" src="static/lib/qrcode/bmparser.js"></script>
+    <script type="text/javascript" src="static/lib/qrcode/datamask.js"></script>
+    <script type="text/javascript" src="static/lib/qrcode/rsdecoder.js"></script>
+    <script type="text/javascript" src="static/lib/qrcode/gf256poly.js"></script>
+    <script type="text/javascript" src="static/lib/qrcode/gf256.js"></script>
+    <script type="text/javascript" src="static/lib/qrcode/decoder.js"></script>
+    <script type="text/javascript" src="static/lib/qrcode/qrcode.js"></script>
+    <script type="text/javascript" src="static/lib/qrcode/findpat.js"></script>
+    <script type="text/javascript" src="static/lib/qrcode/alignpat.js"></script>
+    <script type="text/javascript" src="static/lib/qrcode/databr.js"></script>
+    <script type="text/javascript" src="static/lib/qrcode/qrcode.min.js"></script>
+    <link rel="icon" href="static/img/favicon.ico" type="image/x-icon">
+    <style>
+        body {
+            font-family: PingFangSC-Regular, sans-serif;
+            font-weight: bold;
+            font-size: x-large;
+            font-weight:bold;
+        }
+        #content {
+            position:absolute;
+            top:48%;
+            left:50%;
+            transform:translate(-50%,-50%);
+            width: 95%;
+        }
+        input,button {
+            width: 100%;
+            height: 70px;
+            font-size:x-large;
+            font-weight:bold;
+            border:0px solid;
+            outline: none;
+        }
+        input:disabled {
+            background: #FFF;
+        }
+        .top {
+            margin:0 auto; 
+            overflow:auto; 
+        }
+        .right {
+            width: 278px;
+            height: 278px;
+            float:right; 
+            border:1px solid#eee;
+            vertical-align:middle;
+        }
+        .left {
+            background:#eee;
+            margin-right: 278px;
+            vertical-align:middle;
+        }
+        .line {
+            display: inline-block;
+            height: 70px;
+            position: relative;
+            overflow: hidden;
+            vertical-align: middle;
+        }
+        .upload {
+            position:absolute;
+            top:0;
+            left:0;
+            opacity:0
+        }
+        #img {
+            position:relative;
+            top:50%;
+            left: 50%;
+            transform:translate(-50%,-50%);
+            max-height: 276px;
+            max-width: 276px;
+            vertical-align:middle;
+        }
+        button {
+            width: 120px;
+        }
+    </style>
+    <script>
+        var setting = {
+            "wx": { "0": 280, "1": 310, "2": 580, "3": 580 },
+            "ali": { "0": 200, "1": 510, "2": 600, "3": 600 },
+            "qq": { "0": 190, "1": 455, "2": 350, "3": 350 },
+            qrcodeUrl: { "qq": "", "wx": "", "ali": "", "site": "", "fav": "" },
+        };
+        function geQrcode(fileName, value) {
+            var virtualDiv = document.createElement("div");
+            var qrcode = new QRCode(virtualDiv, {
+                width: 260,
+                height: 260
+            });
+            qrcode.makeCode(value);
+            var img = new Image();
+            img.onload = function () {
+                var canvas = document.createElement("canvas");
+                canvas.width = 300;
+                canvas.height = 300;
+                ctx = canvas.getContext('2d');
+                ctx.fillStyle="#FFF";
+                ctx.fillRect(0,0,300,300);
+                ctx.drawImage(img, 0, 0, 260, 260, 20, 20, 260, 260);
+                canvas.toBlob(function (blob) { downloadFile(fileName, blob); }, "image/webp", 0.01);
+            };
+            img.src = virtualDiv.getElementsByTagName("canvas")[0].toDataURL("image/webp", 0.01);
+        }
+        function deQrcode(key, src) {
+            var image = new Image();
+            image.onload = function () {
+                var canvas = document.createElement("canvas");
+                canvas.setAttribute("width", "280px");
+                canvas.setAttribute("height", "280px");
+                ctx = canvas.getContext('2d');
+                ctx.drawImage(image, setting[key]["0"], setting[key]["1"], setting[key]["2"], setting[key]["3"], 0, 0, 280, 280);
+
+                qrcode.decode(canvas.toDataURL());
+                qrcode.callback = function (value) {
+                    setting.qrcodeUrl[key] = value;
+                }
+            };
+            image.src = src;
+        }
+
+
+        function downloadFile(fileName, blob) {
+            const anchor = document.createElement("a")
+            const src = URL.createObjectURL(blob)
+            anchor.download = fileName
+            anchor.href = src
+            anchor.click()
+        }
+
+        function completeAlert(elemId) {
+            layui.use('layer',function(){
+                    var layer=layui.layer;
+                    layer.tips('请将信息补充完整!','#'+elemId,{tips:[1,'#F00'],time:5000});
+            });
+        }
+        function generate() {
+            if(setting.qrcodeUrl["qq"] == ""){
+                completeAlert("qq"); return;
+            }
+            if(setting.qrcodeUrl["wx"] == ""){
+                completeAlert("wx"); return;
+            }
+            if(setting.qrcodeUrl["ali"] == ""){
+                completeAlert("ali"); return;
+            }
+            if(setting.qrcodeUrl["fav"] == ""){
+                completeAlert("fav"); return;
+            }
+            if($("#url").val() == ""){
+               completeAlert("url"); return;
+            }
+            setting.qrcodeUrl["site"] = $("#url").val();
+            geQrcode("qqpay.webp", setting.qrcodeUrl["qq"]);
+            geQrcode("wxpay.webp", setting.qrcodeUrl["wx"]);
+            geQrcode("other.webp", setting.qrcodeUrl["site"]);
+            downloadFile("favicon.webp", setting.qrcodeUrl["fav"]);
+            $("#ali").html("支付宝收款码链接："+ setting.qrcodeUrl["ali"].trim().toUpperCase());
+        }
+
+        function loadFile(file, filenameSpanId) {
+            var fn = document.getElementById(filenameSpanId).getAttribute("value") + file.name;
+            if (fn.length > 43) fn = fn.substring(0, 40) + "...";
+            document.getElementById(filenameSpanId).innerHTML = fn;
+            var reads = new FileReader();
+            reads.readAsDataURL(file);
+            reads.onload = function (e) {
+                $("#img").attr("src", this.result);
+                if (filenameSpanId == "fav") {
+                    var image = new Image();
+                    image.onload = function () {
+                        var canvas = document.createElement("canvas");
+                        canvas.width = $("#img").width();
+                        canvas.height = $("#img").height();
+                        ctx = canvas.getContext('2d');
+                        ctx.drawImage(image, 0, 0, $("#img").width(), $("#img").height(), 0, 0, $("#img").width(), $("#img").height());
+                        canvas.toBlob(function (blob) { setting.qrcodeUrl["fav"] = blob; }, "image/webp", 0.01);
+                    }
+                    image.src = this.result;
+                    return;
+                };
+                deQrcode(filenameSpanId, this.result);
+            }
+            
+        };
+    </script>
+</head>
+
+<body>
+    <div id="content">
+        <h1 align="center">依赖生成</h1>
+        <div class="top">
+            <div class="right">
+                <img id="img" src="static/img/default.jpg"/>
+            </div>
+            <div class="left">
+                <div class="line">
+                    <button type="button">上传</button>
+                    <input class="upload" type="file" accept="image/*" onchange="loadFile(this.files[0], 'qq')">
+                </div>
+                <span id="qq" value="QQ 收款码: ">QQ 收款码: </span>
+                <br>
+
+                <div class="line">
+                    <button type="button">上传</button>
+                    <input class="upload" type="file" accept="image/*" onchange="loadFile(this.files[0], 'wx')">
+                </div>
+                <span id="wx" value="微信收款码: ">微信收款码: </span>
+                <br>
+
+                <div class="line">
+                    <button type="button">上传</button>
+                    <input class="upload" type="file" accept="image/*" onchange="loadFile(this.files[0], 'ali')">
+                </div>
+                <span id="ali" value="支付宝收款码: ">支付宝收款码: </span>
+                <br>
+
+                <div class="line">
+                    <button type="button">上传</button>
+                    <input class="upload" type="file" accept="image/*" onchange="loadFile(this.files[0], 'fav')">
+                </div>
+                <span id="fav" value="用于 FAVICON 的图片: ">用于 FAVICON 的图片: </span>
+            </div>
+        </div>
+        <input style="border-bottom: 2px solid" id="url" placeholder="输入页面部署后的 URL" autocomplete="off">
+        <p><button style="width: 100%;" onclick="generate()">生成</button></p>
+    </div>
+    <script>
+            layui.use('layer',function(){});
+    </script>
+</body>
+
+</html>
